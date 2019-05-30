@@ -28,6 +28,7 @@ import (
 
 	"k8s.io/ingress-nginx/internal/ingress"
 	"k8s.io/ingress-nginx/internal/ingress/annotations/class"
+	"k8s.io/ingress-nginx/internal/ingress/controller/store"
 	"k8s.io/ingress-nginx/internal/k8s"
 	"k8s.io/ingress-nginx/internal/task"
 )
@@ -232,7 +233,7 @@ func buildExtensionsIngresses() []extensions.Ingress {
 type testIngressLister struct {
 }
 
-func (til *testIngressLister) ListIngresses() []*ingress.Ingress {
+func (til *testIngressLister) ListIngresses(store.IngressFilterFunc) []*ingress.Ingress {
 	var ingresses []*ingress.Ingress
 	ingresses = append(ingresses, &ingress.Ingress{
 		Ingress: extensions.Ingress{
@@ -287,12 +288,16 @@ func TestStatusActions(t *testing.T) {
 		Client:                 buildSimpleClientSet(),
 		PublishService:         "",
 		IngressLister:          buildIngressLister(),
-		DefaultIngressClass:    "nginx",
-		IngressClass:           "",
 		UpdateStatusOnShutdown: true,
 	}
 	// create object
-	fkSync := NewStatusSyncer(c)
+	fkSync := NewStatusSyncer(&k8s.PodInfo{
+		Name:      "foo_base_pod",
+		Namespace: apiv1.NamespaceDefault,
+		Labels: map[string]string{
+			"lable_sig": "foo_pod",
+		},
+	}, c)
 	if fkSync == nil {
 		t.Fatalf("expected a valid Sync")
 	}
@@ -300,7 +305,10 @@ func TestStatusActions(t *testing.T) {
 	fk := fkSync.(statusSync)
 
 	// start it and wait for the election and syn actions
-	go fk.Run()
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+
+	go fk.Run(stopCh)
 	//  wait for the election
 	time.Sleep(100 * time.Millisecond)
 	// execute sync
