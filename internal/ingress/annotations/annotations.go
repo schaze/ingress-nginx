@@ -47,6 +47,7 @@ import (
 	"k8s.io/ingress-nginx/internal/ingress/annotations/parser"
 	"k8s.io/ingress-nginx/internal/ingress/annotations/portinredirect"
 	"k8s.io/ingress-nginx/internal/ingress/annotations/proxy"
+	"k8s.io/ingress-nginx/internal/ingress/annotations/publishservice"
 	"k8s.io/ingress-nginx/internal/ingress/annotations/ratelimit"
 	"k8s.io/ingress-nginx/internal/ingress/annotations/redirect"
 	"k8s.io/ingress-nginx/internal/ingress/annotations/rewrite"
@@ -87,6 +88,7 @@ type Ingress struct {
 	EnableGlobalAuth   bool
 	HTTP2PushPreload   bool
 	Proxy              proxy.Config
+	PublishService     string
 	RateLimit          ratelimit.Config
 	Redirect           redirect.Config
 	Rewrite            rewrite.Config
@@ -132,6 +134,7 @@ func NewAnnotationExtractor(cfg resolver.Resolver) Extractor {
 			"EnableGlobalAuth":     authreqglobal.NewParser(cfg),
 			"HTTP2PushPreload":     http2pushpreload.NewParser(cfg),
 			"Proxy":                proxy.NewParser(cfg),
+			"PublishService":       publishservice.NewParser(cfg),
 			"RateLimit":            ratelimit.NewParser(cfg),
 			"Redirect":             redirect.NewParser(cfg),
 			"Rewrite":              rewrite.NewParser(cfg),
